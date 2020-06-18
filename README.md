@@ -17,6 +17,10 @@ Plugin for working with Dependency API
 <!-- tocstop -->
 <!-- install -->
 <!-- usage -->
+This plugin is aimed at utilizing Dependency API.
+
+Currently it only supports building dependency graph of Apex classes.
+
 ```sh-session
 $ npm install -g first_plugin
 $ sfdx COMMAND
@@ -29,6 +33,7 @@ USAGE
 ...
 ```
 <!-- usagestop -->
+![sample](https://i.ibb.co/3ygy7GY/out.png)
 <!-- commands -->
 * [`sfdx dependency:apex [-n <string>] [-f] [-p <string>] [-a <string>] [-v <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-dependencyapex--n-string--f--p-string--a-string--v-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 
@@ -66,35 +71,10 @@ OPTIONS
                                                                                     this command invocation
 
 EXAMPLES
-  $ sfdx hello:org --targetusername myOrg@example.com --targetdevhubusername devhub@org.com
-     Hello world! This is org: MyOrg and I will be around until Tue Mar 20 2018!
-     My hub org id is: 00Dxx000000001234
+  $ $ sfdx dependency:apex --targetusername myOrg@example.com --targetdevhubusername devhub@org.com
+    // build dependency graph for all Apex classes
   
-  $ sfdx hello:org --name myname --targetusername myOrg@example.com
-     Hello myname! This is org: MyOrg and I will be around until Tue Mar 20 2018!
+  $ $ sfdx dependency:apex --targetusername myOrg@example.com --targetdevhubusername devhub@org.com --prefix 'Test_'
+    // build dependency graph for all Apex classes with Prefix 'Test_'
 ```
 <!-- commandsstop -->
-<!-- debugging-your-plugin -->
-# Debugging your plugin
-We recommend using the Visual Studio Code (VS Code) IDE for your plugin development. Included in the `.vscode` directory of this plugin is a `launch.json` config file, which allows you to attach a debugger to the node process when running your commands.
-
-To debug the `hello:org` command: 
-1. Start the inspector
-  
-If you linked your plugin to the sfdx cli, call your command with the `dev-suspend` switch: 
-```sh-session
-$ sfdx hello:org -u myOrg@example.com --dev-suspend
-```
-  
-Alternatively, to call your command using the `bin/run` script, set the `NODE_OPTIONS` environment variable to `--inspect-brk` when starting the debugger:
-```sh-session
-$ NODE_OPTIONS=--inspect-brk bin/run hello:org -u myOrg@example.com
-```
-
-2. Set some breakpoints in your command code
-3. Click on the Debug icon in the Activity Bar on the side of VS Code to open up the Debug view.
-4. In the upper left hand corner of VS Code, verify that the "Attach to Remote" launch configuration has been chosen.
-5. Hit the green play button to the left of the "Attach to Remote" launch configuration window. The debugger should now be suspended on the first line of the program. 
-6. Hit the green play button at the top middle of VS Code (this play button will be to the right of the play button that you clicked in step #5).
-<br><img src=".images/vscodeScreenshot.png" width="480" height="278"><br>
-Congrats, you are debugging!

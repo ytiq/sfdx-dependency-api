@@ -20,12 +20,11 @@ export default class Data extends SfdxCommand {
   public algorithm: string;
 
   public static examples = [
-    `$ sfdx hello:org --targetusername myOrg@example.com --targetdevhubusername devhub@org.com
-  Hello world! This is org: MyOrg and I will be around until Tue Mar 20 2018!
-  My hub org id is: 00Dxx000000001234
+    `$ sfdx dependency:apex --targetusername myOrg@example.com --targetdevhubusername devhub@org.com
+    // build dependency graph for all Apex classes
   `,
-    `$ sfdx hello:org --name myname --targetusername myOrg@example.com
-  Hello myname! This is org: MyOrg and I will be around until Tue Mar 20 2018!
+    `$ sfdx dependency:apex --targetusername myOrg@example.com --targetdevhubusername devhub@org.com --prefix 'Test_'
+    // build dependency graph for all Apex classes with Prefix 'Test_'
   `
   ];
 
