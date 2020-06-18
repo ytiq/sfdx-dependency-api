@@ -21,6 +21,8 @@ This plugin is aimed at utilizing Dependency API.
 
 Currently it only supports building dependency graph of Apex classes.
 
+In order to run it requires [graphviz](https://graphviz.gitlab.io/download/)
+
 ```sh-session
 $ npm install -g first_plugin
 $ sfdx COMMAND
