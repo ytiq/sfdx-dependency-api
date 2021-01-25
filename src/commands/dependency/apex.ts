@@ -1,12 +1,11 @@
 import { flags, SfdxCommand } from "@salesforce/command";
-import { Messages, SfdxError, fs } from "@salesforce/core";
+import { Messages, SfdxError, fs, MyDomainResolver } from "@salesforce/core";
 import { AnyJson } from "@salesforce/ts-types";
 // import { createCanvas } from "canvas";
 import * as jsonToDot from 'json-to-dot';
-import {exec} from 'child_process';
+import { exec } from 'child_process';
 import * as open from 'open';
 import * as d3 from 'd3';
-import { access } from "fs";
 
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname);
@@ -28,7 +27,7 @@ export default class Data extends SfdxCommand {
   `
   ];
 
-  public static args = [{ name: "prefix" }, {name: 'algorithm'}];
+  public static args = [{ name: "prefix" }, { name: 'algorithm' }];
 
   protected static flagsConfig = {
     // flag with a value (-n, --name=VALUE)
@@ -41,8 +40,8 @@ export default class Data extends SfdxCommand {
       description: messages.getMessage("forceFlagDescription")
     }),
     prefix: flags.string({
-        char: "p",
-        description: 'Prefix'
+      char: "p",
+      description: 'Prefix'
     }),
     algorithm: flags.string({
       char: "a",
@@ -66,7 +65,7 @@ export default class Data extends SfdxCommand {
     this.ux.startSpinner(`Querying classes with prefix '${prefix}'`);
     // this.org is guaranteed because requiresUsername=true, as opposed to supportsUsername
     const conn = this.org.getConnection();
-    const classQuery = `SELECT Id, Name FROM ApexClass` + (prefix? `WHERE Name LIKE '${prefix}%'` : '');
+    const classQuery = `SELECT Id, Name FROM ApexClass` + (prefix ? `WHERE Name LIKE '${prefix}%'` : '');
 
     // The type we are querying for
 
@@ -76,34 +75,21 @@ export default class Data extends SfdxCommand {
 
     // Organization will always return one result, but this is an example of throwing an error
     // The output and --json will automatically be handled for you.
-    interface ApexClass {
-        Name: string;
-        Id: string;
-    }
-    interface Dependency {
-        Id: string;
-        MetadataComponentName: string;
-        MetadataComponentId: string;
-        MetadataComponentType: string; 
-        RefMetadataComponentId: string;
-        RefMetadataComponentName: string;
-        RefMetadataComponentType: string;
-    }
 
     // Organization always only returns one result
     const classes = <ApexClass[]>classResult.records || [];
     const ids = new Set();
-    for(const cl of classes) {
-        if (cl.Name.startsWith(prefix)) {
-            ids.add(cl.Id);
-        }
+    for (const cl of classes) {
+      if (cl.Name.startsWith(prefix)) {
+        ids.add(cl.Id);
+      }
     }
 
     const dependencyQuery = `                
         SELECT Id,MetadataComponentName,MetadataComponentId,MetadataComponentType,RefMetadataComponentId,RefMetadataComponentName,RefMetadataComponentType
         FROM MetadataComponentDependency
-        WHERE RefMetadataComponentType = 'ApexClass'` + (ids.size?`AND (MetadataComponentType = 'ApexClass' OR MetadataComponentType = 'ApexTrigger') AND RefMetadataComponentId IN ('${Array.from(ids).join('\',\'')}')` : ``)
-    ;
+        WHERE RefMetadataComponentType = 'ApexClass'` + (ids.size ? `AND (MetadataComponentType = 'ApexClass' OR MetadataComponentType = 'ApexTrigger') AND RefMetadataComponentId IN ('${Array.from(ids).join('\',\'')}')` : ``)
+      ;
     this.ux.log(dependencyQuery);
 
     const dependencyResult = await conn.tooling.query(dependencyQuery);
@@ -115,37 +101,37 @@ export default class Data extends SfdxCommand {
 
     const dependencies = <Dependency[]>dependencyResult.records;
     const depP = dependencies.map(dep => Object.assign({
-        source: dep.MetadataComponentName,
-        target: dep.RefMetadataComponentName,
-        value: 1
+      source: dep.MetadataComponentName,
+      target: dep.RefMetadataComponentName,
+      value: 1
     }));
 
     const nodes = Array.from(new Set(depP.reduce((acc: Dependency[], val) => acc.concat([val.source, val.target]), []))).map((node: string, index) => Object.assign({
-      id: node, group: node.endsWith('Test') ? 2 : 
-                       node.includes('Handler') ? 3:
-                       node.includes('Selector') ? 4 :
-                       node.includes('Service') ? 5 :
-                       1
+      id: node, group: node.endsWith('Test') ? 2 :
+        node.includes('Handler') ? 3 :
+          node.includes('Selector') ? 4 :
+            node.includes('Service') ? 5 :
+              1
     }));
 
     const graph = {};
-    for(const {source, target} of depP) {
-        if (!(source in graph)) {
-            graph[source] = [];
-        }
+    for (const { source, target } of depP) {
+      if (!(source in graph)) {
+        graph[source] = [];
+      }
 
-        graph[source].push(target);
+      graph[source].push(target);
     }
     console.log('graph');
 
 
     const dotResult = jsonToDot(graph);
-    this.createPngFile(dotResult);
-    // fs.writeFile('./tmp.html', this.createHtmlFile({nodes, links: depP}))
-    //   .then(() => {
-    //     open('./tmp.html');
-    //     console.log('done');
-    //   })
+    // fs.writeFile('./out.html', this.createHtmlFile(graph));
+    fs.writeFile('./tmp.html', this.createHtmlFile({ nodes, links: depP }))
+      .then(() => {
+        open('./tmp.html');
+        console.log('done');
+      })
 
     return JSON.stringify({ classes });
   }
@@ -161,25 +147,26 @@ export default class Data extends SfdxCommand {
     open(`https://dreampuf.github.io/GraphvizOnline/#${encodeURIComponent(dotResult)}`);
   }
   createPngFile(dotResult) {
-    fs.writeFile('out.dot', dotResult)
-        .then(() => {
-          this.ux.log('execute');
+    fs.writeFile('./out.dot', dotResult)
+      .then(() => {
+        this.ux.log('execute');
 
-            exec(`dot -K${this.algorithm} -Tpng out.dot -o out.png`, (error) => {
-                if (error) {
-                    this.ux.log('error' + error);
-                    return;
-                }
-                exec('out.png', () => {
-                  setTimeout(() => {
-                    fs.unlink('out.dot');
-                    fs.unlink('out.png');
-                  }, 500);
-                });
-                this.ux.stopSpinner('all completed');
-            });
-        })
-    ;
+        exec(`dot -K${this.algorithm} -Tsvg ./out.dot -o ./out.svg`, (error) => {
+          this.ux.log('plotted the file');
+          if (error) {
+            this.ux.log('error' + error);
+            return;
+          }
+          exec('open ./out.svg', () => {
+            setTimeout(() => {
+              fs.unlink('out.dot');
+              // fs.unlink('out.png');
+            }, 500);
+          });
+          this.ux.stopSpinner('all completed');
+        });
+      })
+      ;
   }
   createHtmlFile(data) {
     return `
@@ -325,4 +312,18 @@ export default class Data extends SfdxCommand {
       </html>
     `
   }
+}
+
+interface ApexClass {
+  Name: string;
+  Id: string;
+}
+interface Dependency {
+  Id: string;
+  MetadataComponentName: string;
+  MetadataComponentId: string;
+  MetadataComponentType: string;
+  RefMetadataComponentId: string;
+  RefMetadataComponentName: string;
+  RefMetadataComponentType: string;
 }
